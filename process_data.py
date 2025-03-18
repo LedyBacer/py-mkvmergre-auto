@@ -123,7 +123,15 @@ def process_data(series_path, output_path, audio_data, subtitle_data, gui_instan
             try:
                 if gui_instance:
                     gui_instance.update_status(f"Merging: {base_name}...")
-                process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+
+                if platform.system() == 'Windows':
+                    startupinfo = subprocess.STARTUPINFO()
+                    startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+                    startupinfo.wShowWindow = subprocess.SW_HIDE  # Явно указываем скрытие окна
+                else:
+                    startupinfo = None  # Для других ОС оставляем как есть
+
+                process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, startupinfo=startupinfo)
                 stdout, stderr = process.communicate()
 
                 if process.returncode != 0:
