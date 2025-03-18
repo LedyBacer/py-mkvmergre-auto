@@ -1,175 +1,177 @@
 import os
 import subprocess
-import time
-import platform  # Import the platform module
+import platform
+import sys
+import glob
 
+# Константы для расширений
+AUDIO_EXTENSIONS = ['.mka', '.aac', '.mp3', '.ac3', '.dts', '.flac', '.ogg', '.wav']
+SUBTITLE_EXTENSIONS = ['.srt', '.ass', '.ssa', '.vtt']
 
 def find_mkvmerge():
-    """
-    Searches for the mkvmerge executable.  Prioritizes the system PATH,
-    then checks common installation locations in Program Files.
+    """Ищет исполняемый файл mkvmerge."""
+    if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
+        bundled_path = os.path.join(sys._MEIPASS, 'mkvtoolnix', 'mkvmerge.exe')
+        if os.path.exists(bundled_path):
+            print(f"Using bundled mkvmerge: {bundled_path}")
+            return bundled_path
 
-    Returns:
-        The full path to mkvmerge if found, otherwise None.
-    """
-
-    # 1. Check if mkvmerge is in the PATH
     try:
-        # Use 'where' on Windows, 'which' on other platforms
         command = 'where' if platform.system() == 'Windows' else 'which'
         result = subprocess.run([command, 'mkvmerge'], capture_output=True, text=True, check=True)
         mkvmerge_path = result.stdout.strip()
-        if mkvmerge_path:  # Check if the command returned a path
+        if mkvmerge_path and os.path.isfile(mkvmerge_path):
+            print(f"Using PATH mkvmerge: {mkvmerge_path}")
             return mkvmerge_path
-    except (subprocess.CalledProcessError, FileNotFoundError):
-        pass  # mkvmerge not found in PATH, continue searching
+    except (subprocess.CalledProcessError, OSError):
+        pass
 
-    # 2. If not in PATH, check Program Files (Windows only)
     if platform.system() == 'Windows':
-        program_files_paths = [
-            os.environ.get('ProgramFiles'),
-            os.environ.get('ProgramFiles(x86)'),
-            os.environ.get('ProgramW6432')  # For 64-bit programs on 64-bit Windows
-        ]
-
-        for pf_path in program_files_paths:
-            if pf_path:  # Check if the environment variable is set
-                # Common MKVToolNix installation paths within Program Files
+        for pf_path in [os.path.expandvars("%ProgramFiles%"), os.path.expandvars("%ProgramFiles(x86)%")]:
+            if pf_path:
                 for sub_path in ["MKVToolNix", "MKVToolNix GUI"]:
                     potential_path = os.path.join(pf_path, sub_path, "mkvmerge.exe")
                     if os.path.exists(potential_path):
+                        print(f"Using Program Files mkvmerge: {potential_path}")
                         return potential_path
 
-    return None  # mkvmerge not found
+    print("mkvmerge not found.")
+    return None
 
-
-def process_data(series_path, output_path, audio_data, subtitle_data, gui_instance=None):
+def find_track(base_name, track_dir, extensions):
     """
-    Combines video, audio, and subtitle files using mkvmerge.
+    Ищет трек, который начинается с base_name и заканчивается одним из extensions.
 
     Args:
-        series_path: Path to the directory containing the video files.
-        output_path: Path to the directory where the merged files should be saved.
-        audio_data: List of dictionaries, each containing 'path', 'language', and 'track_name' for audio tracks.
-        subtitle_data: List of dictionaries, each containing 'path', 'language', and 'track_name' for subtitle tracks.
-        gui_instance:  An optional GUI instance for progress updates (if used in a GUI).
-    """
+        base_name:  Начало имени файла (без расширения, как у .mkv).
+        track_dir:  Каталог для поиска.
+        extensions: Список допустимых расширений.
 
-    # Find mkvmerge
+    Returns:
+        Полный путь к найденному файлу или None.
+    """
+    if not track_dir or not os.path.isdir(track_dir):
+        return None
+
+    base_name_escaped = glob.escape(base_name)
+
+    for ext in extensions:
+        pattern = os.path.join(track_dir, f"{base_name_escaped}*{ext}")
+        try:
+            for file in glob.glob(pattern):  # Iterate through the list
+                if os.path.isfile(file):
+                   return file
+        except OSError as e:
+            print(f"Error accessing directory {track_dir}: {e}")
+            return None
+
+    return None
+def process_data(series_path, output_path, audio_data, subtitle_data, gui_instance=None):
+    """Объединяет видео, аудио и субтитры."""
     mkvmerge_path = find_mkvmerge()
     if not mkvmerge_path:
+        error_message = "Error: mkvmerge not found."
         if gui_instance:
-            gui_instance.update_status("Error: mkvmerge not found.  Make sure it's installed and in your PATH or Program Files.")
-        print("Error: mkvmerge not found.  Make sure it's installed and in your PATH or Program Files.")
+            gui_instance.update_status(error_message)
+        print(error_message)
         return
 
     try:
-        # 1. Find video files
-        video_files = [f for f in os.listdir(series_path) if f.endswith('.mkv')]
+        video_files = glob.glob(os.path.join(series_path, "*.mkv"))
         if not video_files:
+            error_message = "No video files found."
             if gui_instance:
-                gui_instance.update_status("No video files found.")
+                gui_instance.update_status(error_message)
+            print(error_message)
             return
 
         total_videos = len(video_files)
 
         for index, video_file in enumerate(video_files):
-            base_name = os.path.splitext(video_file)[0]
-            video_path = os.path.join(series_path, video_file)
+            base_name = os.path.splitext(os.path.basename(video_file))[0]
             output_file = os.path.join(output_path, f"{base_name}_merged.mkv")
+            command = [mkvmerge_path, '-o', output_file, video_file]
 
-            # 2. Build the mkvmerge command
-            command = [mkvmerge_path, '-o', output_file, video_path]
-
-            # 3. Add audio tracks
             for audio in audio_data:
-                audio_dir = audio['path']
-                audio_language = audio['language']
-                audio_track_name = audio['track_name']
-
-                audio_file = None
-                for ext in ['.mka', '.aac', '.mp3', '.ac3', '.dts', '.flac', '.ogg', '.wav']:
-                    potential_audio_file = os.path.join(audio_dir, f"{base_name}{ext}")
-                    if os.path.exists(potential_audio_file):
-                        audio_file = potential_audio_file
-                        break
-
+                audio_file = find_track(base_name, audio.get('path'), AUDIO_EXTENSIONS)
                 if audio_file:
-                    command.extend(['--language', f'0:{audio_language}', '--track-name', f'0:{audio_track_name}', audio_file])
+                    command.extend([
+                        '--language', f'0:{audio.get("language", "")}',
+                        '--track-name', f'0:{audio.get("track_name", "")}',
+                        audio_file
+                    ])
                 else:
+                    message = f"Warning: No audio file found for {base_name} in {audio.get('path')}"
                     if gui_instance:
-                        gui_instance.update_status(f"Warning: No audio file found for {base_name} in {audio_dir}")
+                        gui_instance.update_status(message)
+                    print(message)
 
-            # 4. Add subtitle tracks
             for subtitle in subtitle_data:
-                subtitle_dir = subtitle['path']
-                subtitle_language = subtitle['language']
-                subtitle_track_name = subtitle['track_name']
-
-                subtitle_file = None
-                for ext in ['.srt', '.ass', '.ssa', '.vtt']:
-                    potential_subtitle_file = os.path.join(subtitle_dir, f"{base_name}{ext}")
-                    if os.path.exists(potential_subtitle_file):
-                        subtitle_file = potential_subtitle_file
-                        break
-
+                subtitle_file = find_track(base_name, subtitle.get('path'), SUBTITLE_EXTENSIONS)
                 if subtitle_file:
-                    command.extend(['--language', f'0:{subtitle_language}', '--track-name', f'0:{subtitle_track_name}', subtitle_file])
+                    command.extend([
+                        '--language', f'0:{subtitle.get("language", "")}',
+                        '--track-name', f'0:{subtitle.get("track_name", "")}',
+                        subtitle_file
+                    ])
                 else:
+                    message = f"Warning: No subtitle file found for {base_name} in {subtitle.get('path')}"
                     if gui_instance:
-                        gui_instance.update_status(f"Warning: No subtitle file found for {base_name} in {subtitle_dir}")
+                        gui_instance.update_status(message)
+                    print(message)
 
-            # 5. Execute mkvmerge
             try:
                 if gui_instance:
                     gui_instance.update_status(f"Merging: {base_name}...")
-                process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+
+                if platform.system() == 'Windows':
+                    startupinfo = subprocess.STARTUPINFO()
+                    startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+                    startupinfo.wShowWindow = subprocess.SW_HIDE  # Явно указываем скрытие окна
+                else:
+                    startupinfo = None  # Для других ОС оставляем как есть
+
+                process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, startupinfo=startupinfo)
                 stdout, stderr = process.communicate()
 
                 if process.returncode != 0:
+                    error_message = f"Error merging {base_name}:\n{stderr}"
                     if gui_instance:
-                        gui_instance.update_status(f"Error merging {base_name}:")
+                        gui_instance.update_status("Error merging:")
                         gui_instance.update_status(stderr)
-                    print(f"Error merging {base_name}:\n{stderr}")
+                    print(error_message)
                 else:
                     if gui_instance:
                         gui_instance.update_status(f"Successfully merged: {base_name}")
 
-            except FileNotFoundError:
-                # This should not happen now, as we already checked for mkvmerge
+            except (OSError, subprocess.SubprocessError) as e:
+                error_message = f"Error during mkvmerge execution: {e}"
                 if gui_instance:
-                    gui_instance.update_status("Error: mkvmerge execution failed.")
-                print("Error: mkvmerge execution failed.")
-                return
-            except Exception as e:
-                if gui_instance:
-                    gui_instance.update_status(f"An unexpected error occurred: {e}")
-                print(f"An unexpected error occurred: {e}")
+                    gui_instance.update_status(error_message)
+                print(error_message)
                 return
 
             if gui_instance:
                 progress_percent = (index + 1) / total_videos * 100
                 gui_instance.update_progress(progress_percent)
 
-    except Exception as e:
+    except (OSError, PermissionError) as e:
+        error_message = f"Critical error in process_data: {e}"
         if gui_instance:
-            gui_instance.update_status(f"Critical Error Occurred: {e}")
-        print(f"Critical error in process_data: {e}")
+            gui_instance.update_status(error_message)
+        print(error_message)
 
     if gui_instance:
         gui_instance.update_status("All files merged!")
-
-
-
-# Example Usage (without a GUI):
+# Пример использования (без GUI):
 if __name__ == '__main__':
-    series_path = 'D:/Bacer/Рабочий стол/py-mkvtoolnux-auto/.conda/share/zoneinfo/Atlantic'
-    output_path = 'D:/Bacer/Downloads'
+    series_path = 'E:/Steins;Gate Soumei Eichi no Cognitive Computing'  # Замените на ваши пути
+    output_path = 'E:/Steins;Gate Soumei Eichi no Cognitive Computing/Output'
     audio_data = [
-        {'path': 'D:/Bacer/Рабочий стол/py-mkvtoolnux-auto/.conda/share/zoneinfo', 'language': 'ru', 'track_name': 'dsa'}
+        {'path': 'E:/Steins;Gate Soumei Eichi no Cognitive Computing/RUS Sound', 'language': 'ru', 'track_name': 'RUS'}
     ]
     subtitle_data = [
-        {'path': 'D:/Bacer/Рабочий стол/py-mkvtoolnux-auto/.conda/share/zoneinfo/Atlantic', 'language': 'ru', 'track_name': 'asd'}
+        {'path': 'E:/Steins;Gate Soumei Eichi no Cognitive Computing/RUS Sub', 'language': 'ru', 'track_name': 'RUS Sub'}
     ]
 
     os.makedirs(output_path, exist_ok=True)
