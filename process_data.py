@@ -1,66 +1,70 @@
 import os
 import subprocess
-import time
-import platform  # Import the platform module
+import platform
+import sys
 
 
 def find_mkvmerge():
     """
-    Searches for the mkvmerge executable.  Prioritizes the system PATH,
-    then checks common installation locations in Program Files.
+    Searches for the mkvmerge executable. Prioritizes a bundled version,
+    then the system PATH, then checks common installation locations.
 
     Returns:
         The full path to mkvmerge if found, otherwise None.
     """
 
-    # 1. Check if mkvmerge is in the PATH
+    # 1. Check for bundled mkvmerge (PyInstaller-specific)
+    if getattr(sys, 'frozen', False):  # Check if running as a PyInstaller executable
+        # sys._MEIPASS is the temporary directory created by PyInstaller
+        bundled_path = os.path.join(sys._MEIPASS, 'mkvtoolnix', 'mkvmerge.exe')  # Adjust path as needed
+        if os.path.exists(bundled_path):
+            print(f"Using bundled mkvmerge: {bundled_path}")  # Debugging
+            return bundled_path
+
+    # 2. Check if mkvmerge is in the PATH (same as before)
     try:
-        # Use 'where' on Windows, 'which' on other platforms
         command = 'where' if platform.system() == 'Windows' else 'which'
         result = subprocess.run([command, 'mkvmerge'], capture_output=True, text=True, check=True)
         mkvmerge_path = result.stdout.strip()
-        if mkvmerge_path:  # Check if the command returned a path
+        if mkvmerge_path:
+            print(f"Using PATH mkvmerge: {mkvmerge_path}") # Debugging
             return mkvmerge_path
     except (subprocess.CalledProcessError, FileNotFoundError):
-        pass  # mkvmerge not found in PATH, continue searching
+        pass
 
-    # 2. If not in PATH, check Program Files (Windows only)
+    # 3. Check Program Files (Windows only, same as before)
     if platform.system() == 'Windows':
         program_files_paths = [
             os.environ.get('ProgramFiles'),
             os.environ.get('ProgramFiles(x86)'),
-            os.environ.get('ProgramW6432')  # For 64-bit programs on 64-bit Windows
+            os.environ.get('ProgramW6432')
         ]
 
         for pf_path in program_files_paths:
-            if pf_path:  # Check if the environment variable is set
-                # Common MKVToolNix installation paths within Program Files
+            if pf_path:
                 for sub_path in ["MKVToolNix", "MKVToolNix GUI"]:
                     potential_path = os.path.join(pf_path, sub_path, "mkvmerge.exe")
                     if os.path.exists(potential_path):
+                        print(f"Using Program Files mkvmerge: {potential_path}") # Debugging
                         return potential_path
 
-    return None  # mkvmerge not found
+    print("mkvmerge not found.") # Debugging
+    return None
+
 
 
 def process_data(series_path, output_path, audio_data, subtitle_data, gui_instance=None):
     """
-    Combines video, audio, and subtitle files using mkvmerge.
-
-    Args:
-        series_path: Path to the directory containing the video files.
-        output_path: Path to the directory where the merged files should be saved.
-        audio_data: List of dictionaries, each containing 'path', 'language', and 'track_name' for audio tracks.
-        subtitle_data: List of dictionaries, each containing 'path', 'language', and 'track_name' for subtitle tracks.
-        gui_instance:  An optional GUI instance for progress updates (if used in a GUI).
+    Combines video, audio, and subtitle files using mkvmerge.  (Same as before,
+    but now it uses the updated find_mkvmerge)
     """
 
     # Find mkvmerge
     mkvmerge_path = find_mkvmerge()
     if not mkvmerge_path:
         if gui_instance:
-            gui_instance.update_status("Error: mkvmerge not found.  Make sure it's installed and in your PATH or Program Files.")
-        print("Error: mkvmerge not found.  Make sure it's installed and in your PATH or Program Files.")
+            gui_instance.update_status("Error: mkvmerge not found.  Make sure it's installed and in your PATH or Program Files, or bundled correctly.")
+        print("Error: mkvmerge not found.  Make sure it's installed and in your PATH or Program Files, or bundled correctly.")
         return
 
     try:
@@ -163,7 +167,7 @@ def process_data(series_path, output_path, audio_data, subtitle_data, gui_instan
 
 # Example Usage (without a GUI):
 if __name__ == '__main__':
-    series_path = 'D:/Bacer/Рабочий стол/py-mkvtoolnux-auto/.conda/share/zoneinfo/Atlantic'
+    series_path = 'D:/Bacer/Рабочий стол/py-mkvtoolnux-auto/.conda/share/zoneinfo/Atlantic'  # Replace with your actual paths
     output_path = 'D:/Bacer/Downloads'
     audio_data = [
         {'path': 'D:/Bacer/Рабочий стол/py-mkvtoolnux-auto/.conda/share/zoneinfo', 'language': 'ru', 'track_name': 'dsa'}
