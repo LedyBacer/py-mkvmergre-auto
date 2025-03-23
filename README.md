@@ -1,6 +1,6 @@
 # Py Mkvmerge Auto
 
-![GUI Preview](https://via.placeholder.com/800x400.png?text=GUI+Preview) *(Optional: Add actual screenshot later)*
+![GUI Preview](https://github.com/LedyBacer/py-mkvmergre-auto/blob/main-qt/gui_preview.png)
 
 A cross-platform GUI application for automatically merging video files with audio tracks and subtitles using MKVToolNix. Supports drag-and-drop, multilingual interface (English/Russian), and executable packaging.
 
