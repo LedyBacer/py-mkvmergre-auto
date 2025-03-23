@@ -350,12 +350,22 @@ class MainWindow(QMainWindow):
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
+    
+    # Определение путей к ресурсам
     if getattr(sys, 'frozen', False):
-        bundled_icon_dir = os.path.join(sys._MEIPASS, 'icons')
+        # Для pyinstaller (использует _MEIPASS) и py2app (использует sys.executable)
+        base_dir = sys._MEIPASS if hasattr(sys, '_MEIPASS') else os.path.dirname(sys.executable)
+        resource_dir = os.path.join(base_dir, 'data')
+        binary_dir = os.path.join(base_dir, 'binary', 'macos')
     else:
-        bundled_icon_dir = 'data'
-    app.setWindowIcon(QIcon(f'{bundled_icon_dir}/icon.png'))
+        resource_dir = 'data'
+        binary_dir = os.path.join('binary', 'macos')
+    
+    # Путь к иконке
+    icon_path = os.path.join(resource_dir, 'icon.png')
+    app.setWindowIcon(QIcon(icon_path))
+    
     window = MainWindow()
-    window.setWindowIcon(QIcon(f'{bundled_icon_dir}/icon.png'))
+    window.setWindowIcon(QIcon(icon_path))
     window.show()
     sys.exit(app.exec())
