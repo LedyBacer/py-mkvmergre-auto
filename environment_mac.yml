@@ -1,0 +1,9 @@
+name: py-mkvmerge-auto
+channels:
+  - defaults
+  - conda-forge
+dependencies:
+  - python=3.11
+  - py2app
+  - pyqt
+prefix: c:\Users\minec\Other Projects\py-mkvmergre-auto\.conda
