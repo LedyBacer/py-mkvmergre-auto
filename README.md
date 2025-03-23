@@ -69,4 +69,4 @@ conda activate py-mkvmerge-auto
 
 ---
 
-*Tested on Windows 11*
+*Tested on Windows 11, Macbook M4*
