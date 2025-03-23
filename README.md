@@ -1,4 +1,4 @@
-# Py Mkvmerge Auto
+# <img src="https://github.com/LedyBacer/py-mkvmergre-auto/blob/main/data/icon.png" alt="Icon" width="25"/> Py MKVMerge Auto
 
 ![GUI Preview](https://github.com/LedyBacer/py-mkvmergre-auto/blob/main/gui_preview.png)
 
