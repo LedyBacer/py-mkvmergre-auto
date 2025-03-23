@@ -2,11 +2,11 @@
 
 ![GUI Preview](https://github.com/LedyBacer/py-mkvmergre-auto/blob/main/gui_preview.png)
 
-A cross-platform GUI application for automatically merging video files with audio tracks and subtitles using MKVToolNix. Supports drag-and-drop, multilingual interface (English/Russian), and executable packaging.
+A cross-platform GUI application for automatically merging MKV video files with audio tracks and subtitles using MKVToolNix. Supports drag-and-drop, multilingual interface (English/Russian), and executable packaging. **Video, audio, and subtitles must have the same names!**
 
 ## Features
 
-- 🎥 **Smart Merging**: Combine video files with matching audio/subtitle tracks
+- 🎥 **Smart Merging**: Combine MKV video files with matching audio/subtitle tracks
 - 🌍 **Multilingual UI**: English and Russian language support
 - 🖱️ **Drag-and-Drop**: Intuitive file management
 - 📦 **Executable Builds**: Standalone packages for each system
