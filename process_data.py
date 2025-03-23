@@ -26,7 +26,9 @@ class MkvProcessor:
 
         # Проверка bundled версии (для PyInstaller)
         if getattr(sys, 'frozen', False):
-            bundled_path = os.path.join(sys._MEIPASS, 'mkvtoolnix', 'mkvmerge.exe')
+            bundled_dir = os.path.join(sys._MEIPASS, 'mkvtoolnix')
+            exe_name = 'mkvmerge.exe' if platform.system() == 'Windows' else 'mkvmerge'
+            bundled_path = os.path.join(bundled_dir, exe_name)
             search_paths.append(bundled_path)
 
         # Поиск в системном PATH

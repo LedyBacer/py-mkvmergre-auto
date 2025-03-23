@@ -4,9 +4,8 @@ from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, QH
                              QLabel, QLineEdit, QPushButton, QScrollArea, QFileDialog,
                              QProgressBar, QMessageBox, QSizePolicy, QFrame, QComboBox)
 from PyQt6.QtCore import Qt, QThread, pyqtSignal, QObject, QMimeData
-from PyQt6.QtGui import QDragEnterEvent, QDropEvent
+from PyQt6.QtGui import QDragEnterEvent, QDropEvent, QIcon  
 from process_data import MkvProcessor  # Импорт вашей функции обработки
-
 
 class MediaSectionFrame(QFrame):
     filesDropped = pyqtSignal(list, str)  # list of paths, media type
@@ -351,6 +350,12 @@ class MainWindow(QMainWindow):
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
+    if getattr(sys, 'frozen', False):
+        bundled_icon_dir = os.path.join(sys._MEIPASS, 'icons')
+    else:
+        bundled_icon_dir = 'data'
+    app.setWindowIcon(QIcon(f'{bundled_icon_dir}/icon.png'))
     window = MainWindow()
+    window.setWindowIcon(QIcon(f'{bundled_icon_dir}/icon.png'))
     window.show()
     sys.exit(app.exec())
