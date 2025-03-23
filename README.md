@@ -50,9 +50,17 @@ conda activate py-mkvmerge-auto
 ## Build Executable
 
 1. Build package:
-   ```bash
-   pyinstaller ./win64.spec
-   ```
+  - **Windows**
+    ```bash
+    pyinstaller ./win64.spec
+    ```
+  - **macOS**
+    ```bash
+    python setup_mac.py py2app --semi-standalone
+    ```
+    ```bash
+    ./create_dmg.sh 
+    ```
 
 2. Find executable in `dist/` directory
 
