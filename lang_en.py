@@ -20,5 +20,7 @@ TRANSLATIONS = {
     "preparing_processing": "Preparing for processing...",
     "processing_status": "Processing...",
     "critical_error": "Critical error: {error}",
-    "select_directory": "Select directory"
+    "select_directory": "Select directory",
+    "drag_and_drop_placeholder": "Drag and drop folders here",
+    "drop_here": "Drop here",
 }

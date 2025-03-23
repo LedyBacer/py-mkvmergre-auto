@@ -3,8 +3,32 @@ import os
 from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
                              QLabel, QLineEdit, QPushButton, QScrollArea, QFileDialog,
                              QProgressBar, QMessageBox, QSizePolicy, QFrame, QComboBox)
-from PyQt6.QtCore import Qt, QThread, pyqtSignal, QObject
+from PyQt6.QtCore import Qt, QThread, pyqtSignal, QObject, QMimeData
+from PyQt6.QtGui import QDragEnterEvent, QDropEvent
 from process_data import MkvProcessor  # Импорт вашей функции обработки
+
+
+class MediaSectionFrame(QFrame):
+    filesDropped = pyqtSignal(list, str)  # list of paths, media type
+
+    def __init__(self, media_type):
+        super().__init__()
+        self.media_type = media_type
+        self.setAcceptDrops(True)
+
+    def dragEnterEvent(self, event: QDragEnterEvent):
+        if event.mimeData().hasUrls():
+            event.acceptProposedAction()
+
+    def dropEvent(self, event: QDropEvent):
+        paths = []
+        for url in event.mimeData().urls():
+            file_path = url.toLocalFile()
+            if os.path.isdir(file_path):
+                paths.append(file_path)
+        if paths:
+            self.filesDropped.emit(paths, self.media_type)
+        event.acceptProposedAction()
 
 
 class Worker(QObject):
@@ -168,7 +192,7 @@ class MainWindow(QMainWindow):
         self.audio_section = self.create_media_section(
             self.translations["audio_tracks"],
             self.translations["add_audio"],
-            "audio"  # <- Добавляем третий параметр
+            "audio"
         )
         layout.addWidget(self.audio_section)
 
@@ -176,19 +200,18 @@ class MainWindow(QMainWindow):
         self.subtitle_section = self.create_media_section(
             self.translations["subtitles"],
             self.translations["add_subtitles"],
-            "subtitles"  # <- Добавляем третий параметр
+            "subtitles"
         )
         layout.addWidget(self.subtitle_section)
 
     def create_media_section(self, title, add_button_text, media_type):
-        frame = QFrame()
+        frame = MediaSectionFrame(media_type)
         frame.setFrameShape(QFrame.Shape.StyledPanel)
         layout = QVBoxLayout(frame)
 
         header = QHBoxLayout()
         header.addWidget(QLabel(title))
         add_btn = QPushButton(add_button_text)
-        # Передаем media_type вместо title
         add_btn.clicked.connect(lambda: self.add_media_widget(media_type))
         header.addWidget(add_btn)
         layout.addLayout(header)
@@ -196,11 +219,12 @@ class MainWindow(QMainWindow):
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll_widget = QWidget()
-        self.scroll_layout = QVBoxLayout(scroll_widget)
-        self.scroll_layout.addStretch()
+        scroll_layout = QVBoxLayout(scroll_widget)
+        scroll_layout.addStretch()
         scroll.setWidget(scroll_widget)
-
         layout.addWidget(scroll)
+
+        frame.filesDropped.connect(self.handle_dropped_files)
         return frame
 
     def setup_progress(self, layout):
@@ -227,11 +251,12 @@ class MainWindow(QMainWindow):
         if path:
             self.output_edit.setText(path)
 
-    def add_media_widget(self, media_type):
+    def add_media_widget(self, media_type, path=None):
         widget = MediaTrackWidget(self.translations)
         widget.removed.connect(self.remove_media_widget)
+        if path is not None:
+            widget.path_edit.setText(path)
 
-        # Проверяем тип медиа напрямую
         if media_type == "audio":
             self.audio_widgets.append(widget)
             container = self.audio_section
@@ -239,9 +264,15 @@ class MainWindow(QMainWindow):
             self.subtitle_widgets.append(widget)
             container = self.subtitle_section
 
-        container.layout().itemAt(1).widget().widget().layout().insertWidget(
-            self.scroll_layout.count()-1, widget
-        )
+        # Get the scroll area and layout
+        scroll_area = container.layout().itemAt(1).widget()
+        scroll_widget = scroll_area.widget()
+        scroll_layout = scroll_widget.layout()
+        scroll_layout.insertWidget(scroll_layout.count() - 1, widget)
+
+    def handle_dropped_files(self, paths, media_type):
+        for path in paths:
+            self.add_media_widget(media_type, path)
 
     def remove_media_widget(self, widget):
         if widget in self.audio_widgets:
@@ -306,7 +337,6 @@ class MainWindow(QMainWindow):
         self.series_browse.setText(self.translations["browse_button"])
         self.output_browse.setText(self.translations["browse_button"])
         self.confirm_btn.setText(self.translations["start_processing"])
-        self.setup_path_inputs
         
         # Update sections
         self.audio_section.layout().itemAt(0).layout().itemAt(0).widget().setText(self.translations["audio_tracks"])

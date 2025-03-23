@@ -20,5 +20,7 @@ TRANSLATIONS = {
     "preparing_processing": "Подготовка к обработке...",
     "processing_status": "Обработка...",
     "critical_error": "Критическая ошибка: {error}",
-    "select_directory": "Выберите папку"
+    "select_directory": "Выберите папку",
+    "drag_and_drop_placeholder": "Перетащите папки сюда",
+    "drop_here": "Отпустите здесь",
 }
