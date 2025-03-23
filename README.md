@@ -59,7 +59,8 @@ conda activate py-mkvmerge-auto
     python setup_mac.py py2app --semi-standalone
     ```
     ```bash
-    ./create_dmg.sh <img src="https://github.com/LedyBacer/py-mkvmergre-auto/blob/main/data/icon.png" alt="Icon" width="200"/>    ```
+    ./create_dmg.sh
+    ```
 
 2. Find executable in `dist/` directory
 
