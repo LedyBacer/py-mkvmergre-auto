@@ -2,7 +2,7 @@
 
 ![GUI Preview](https://github.com/LedyBacer/py-mkvmergre-auto/blob/367480ca4351f7e6b6dd2265c91e658dc99a75c7/gui_preview.png)
 
-A simple cross-platform GUI application for automatically merging multiple MKV video files with audio tracks and subtitles. **Video, audio, and subtitles must have the same names!**
+A simple cross-platform GUI application for automatically merging multiple MKV video files with audio tracks and subtitles. Tired of separeted audio/subtitles? Say no more!
 
 ## Features
 
@@ -15,6 +15,7 @@ A simple cross-platform GUI application for automatically merging multiple MKV v
 ## Usage
 
 Download app from [release page](https://github.com/LedyBacer/py-mkvmergre-auto/releases) and run.
+Fill in all empty fields and start processing files. **Video, audio, and subtitles must have the same filenames!**
 
 ## Development
 
