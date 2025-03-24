@@ -67,6 +67,9 @@ conda activate py-mkvmerge-auto
 ## 🙏 Attribution
 - The application relies heavily on [MKVToolNix](https://gitlab.com/mbunkus/mkvtoolnix), so a big thanks to them.
 
+## Notes
+- Check also [mkv-muxing-batch-gui](https://github.com/yaser01/mkv-muxing-batch-gui). It's more advanced solution, with more feature's and capabilities but with same idea.
+
 ---
 
 *Tested on Windows 11, Macbook M4*
