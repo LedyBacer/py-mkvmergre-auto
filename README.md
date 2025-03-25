@@ -48,6 +48,11 @@ conda activate py-mkvmerge-auto
   brew install mkvtoolnix
   ```
 
+### 4. Run
+  ```bash
+  python main.py
+  ```
+
 ## Build Executable
 
 1. Build package:
